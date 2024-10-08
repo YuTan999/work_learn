@@ -18,6 +18,7 @@ mutation {
 
 '''
 
-
-response = requests.post(url, json={'query': mutation})
-print(response.json())
+def getsid():
+    # response = requests.post(url, json={'query': mutation})
+    # print(response.json())
+    return 1
