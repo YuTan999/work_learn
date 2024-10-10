@@ -1,5 +1,5 @@
 import requests
-
+import time
 
 def send_graphql_query(query, url):
    headers = {'Content-Type': 'application/json'}
