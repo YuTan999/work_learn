@@ -1,8 +1,9 @@
-import streamlit as st
 import time
 import pandas as pd
-from graphql_mutations import get_sid, update_fan_speed
-from graphql_queries import get_device_info, get_fan_speed
+import streamlit as st
+from graphql_mutations import get_sid, update_ipmx_input, update_fan_speed
+from graphql_queries import get_device_info, get_decode_ipmx, get_video_and_audio_input_format, get_hdmi_output, \
+    get_fan_speed
 from graphql_requests import send_graphql_query, send_graphql_mutation
 
 df = pd.DataFrame(columns=['result', 'interface', 'subscribe', 'log', 'time(s)'], index=[1, 2, 3])
@@ -24,212 +25,123 @@ def getSid():
 def getDeviceInfo(sid):
     start_time = time.time()
     data = send_graphql_query(get_device_info(sid), graphql_url)
-    elapsed_time = time.time() - start_time
-    # if elapsed_time < 5:
-    #     time.sleep(5 - elapsed_time)
-    nmosName = data['data']['common']['getNmos']['nmos'][0]['nmosName']
-    updateCurrentVersion = data['data']['system']['getImageUpdate']['imageUpdate'][0]['updateCurrentVersion']
-    if nmosName and updateCurrentVersion:
+    nmos_name = data['data']['common']['getNmos']['nmos'][0]['nmosName']
+    update_current_version = data['data']['system']['getImageUpdate']['imageUpdate'][0]['updateCurrentVersion']
+    if nmos_name and update_current_version:
         df.loc[1, 'result'] = 'TRUE'
-        df.loc[1, 'log'] = f'设备名称: {nmosName}`, 设备版本: {updateCurrentVersion}'
+        df.loc[1, 'log'] = f'设备名称: {nmos_name}`, 设备版本: {update_current_version}'
     else:
         df.loc[1, 'result'] = 'FAILED'
         df.loc[1, 'log'] = '获取设备信息失败'
+    elapsed_time = time.time() - start_time
     df.loc[1, 'time(s)'] = elapsed_time
+
+
+# 切换到ipin？update_input_selection
+# 获取ip输入选择?get_input_selection
+# handleUpdateOutput?UPDATE_RX_VIDEO_DECODE（还没写
+
+def changeInterface(sid, value):
+    start_time = time.time()
+    inputs = f'{{ipmxinputConnector:{value}}}'
+    send_graphql_mutation(update_ipmx_input(sid, ".1.1.1.1", inputs), graphql_url)
+    send_graphql_mutation(update_ipmx_input(sid, ".1.1.2.1", inputs), graphql_url)
+    elapsed_time = time.time() - start_time
+    if elapsed_time < 15:
+        time.sleep(8 - elapsed_time)
+    ipmxlog = getDecodeIpmx(sid, value)
+    formatlog = getInputFormat(sid)
+    outputlog = getHdmiOutput(sid)
+    if ipmxlog == '网口切换成功' and formatlog == '音视频格式正确' and outputlog == 'HDMI输出正常':
+        df.loc[2, 'result'] = 'TRUE'
+    else:
+        df.loc[2, 'result'] = 'FALSE'
+    df.loc[2, 'log'] = ipmxlog + formatlog + outputlog
+    elapsed_time = time.time() - start_time
+    df.loc[2, 'time(s)'] = elapsed_time
+
+
+def getDecodeIpmx(sid, value):
+    data = send_graphql_query(get_decode_ipmx(sid), graphql_url)
+    video_input_selection = data['data']['transceiver']['getIpmxInput']['ipmxInput'][0]['ipmxinputConnector']
+    audio_input_selection = data['data']['transceiver']['getIpmxInput']['ipmxInput'][1]['ipmxinputConnector']
+    if video_input_selection == value and audio_input_selection == value:
+        return '网口切换成功'
+    else:
+        return '网口切换失败'
+
+
+def getInputFormat(sid):
+    log = ''
+    data = send_graphql_query(get_video_and_audio_input_format(sid), graphql_url)
+    videodecode_status = data['data']['transceiver']['getVideoDecode']['videoDecode'][0]['videodecodeStatus']
+    videodecode_mative_format = data['data']['transceiver']['getVideoDecode']['videoDecode'][0]['videodecodeNativeFormat']
+    inputaudio_mode = data['data']['transceiver']['getSt2110InputAudio']['St2110InputAudio'][0]['st2110inputaudioMode']
+    inputaudio_sample_rate = data['data']['transceiver']['getSt2110InputAudio']['St2110InputAudio'][0][
+        'st2110inputaudioSampleRate']
+    if videodecode_status != "STATUS_OK" or videodecode_mative_format != 'DISPLAY_TYPE_3840X2160P_6000':
+        log += '视频格式错误'
+    if inputaudio_mode != 'AUDIO_SOURCE_TYPE_PCM' or inputaudio_sample_rate != 'AUDIO_SAMPLERATE_48000':
+        log += '音频格式错误'
+    if log == '':
+        return '音视频格式正确'
+    else:
+        return log
+
+
+def getHdmiOutput(sid):
+    data = send_graphql_query(get_hdmi_output(sid), graphql_url)
+    status = data['data']['transceiver']['getHdmiOutput']['hdmiOutput'][0]['hdmioutputConnectionStatus']
+    if status == 'LOCKED':
+        return 'HDMI输出正常'
+    else:
+        return 'HDMI输出异常'
 
 
 def updateFanSpeed(sid):
     start_time = time.time()
-    result = 0
-    send_graphql_mutation(update_fan_speed(sid, fanspeedInput('MANUAL','10')), graphql_url)
+    log = ''
+    # speed=10
+    send_graphql_mutation(update_fan_speed(sid, fanSpeedInput('MANUAL', '10')), graphql_url)
     time.sleep(2)
-    if getFanSpeed(sid,'MANUAL','10'):
-        result += 1
-    send_graphql_mutation(update_fan_speed(sid, fanspeedInput('MANUAL','100')), graphql_url)
+    if getFanSpeed(1, sid, 'MANUAL', 10):
+        log += '转速切换至10%时失败'
+    # speed=100
+    send_graphql_mutation(update_fan_speed(sid, fanSpeedInput('MANUAL', '100')), graphql_url)
     time.sleep(2)
-    if getFanSpeed(sid,'MANUAL','100'):
-        result +=1
-    send_graphql_mutation(update_fan_speed(sid, fanspeedInput('AUTO','10')), graphql_url)
+    if getFanSpeed(2, sid, 'MANUAL', 100):
+        log += '转速切换至100%时失败'
+    # speed=auto
+    send_graphql_mutation(update_fan_speed(sid, fanSpeedInput('AUTO', '10')), graphql_url)
     time.sleep(2)
-    if getFanSpeed(sid,'AUTO','10'):
-        result +=1
-    print(result)
-    if result == 3:
-        df.loc[2, 'result'] = 'TRUE'
+    if getFanSpeed(3, sid, 'AUTO', 10):
+        log += '转速切换至auto时失败'
+    if log == '':
+        df.loc[3, 'result'] = 'TRUE'
     else:
-        df.loc[2, 'result'] = 'FALSE'
+        df.loc[3, 'log'] = log
+        df.loc[3, 'result'] = 'FALSE'
     elapsed_time = time.time() - start_time
-    df.loc[2, 'time(s)'] = elapsed_time
+    df.loc[3, 'time(s)'] = elapsed_time
 
-def fanspeedInput(mode,speed):
-    fanspeedinput= f'{{fanspeedControlMode:FAN_SPEED_CONTROL_MODE_{mode},fanspeedPercentage:{speed}}}'
+
+def fanSpeedInput(mode, speed):
+    fanspeedinput = f'{{fanspeedControlMode:FAN_SPEED_CONTROL_MODE_{mode},fanspeedPercentage:{speed}}}'
     return fanspeedinput
 
-def getFanSpeed(sid,mode,speed):
+
+def getFanSpeed(step, sid, mode, speed):
     data = send_graphql_query(get_fan_speed(sid), graphql_url)
     if data:
-        fanspeedStatus = data['data']['system']['getFanSpeed']['fanSpeed'][0]['fanspeedStatus']
-        fanspeedControlMode = data['data']['system']['getFanSpeed']['fanSpeed'][0]['fanspeedControlMode']
-
-        fanspeedStatus_compare=f'FAN_SPEED_CONTROL_MODE_{mode}'
-        print(fanspeedControlMode)
-        print(fanspeedStatus_compare)
-        print(fanspeedStatus)
-        print(speed)
-        print(fanspeedControlMode == fanspeedStatus_compare and fanspeedStatus == speed)
-        if fanspeedControlMode == fanspeedStatus_compare and fanspeedStatus == speed:
-            return True
-    else:
-        return False
-
-
-#
-# const[getInputFormat] = useLazyQuery(GET_VIDEO_AND_AUDIO_INPUT_FORMAT, {
-#     ...
-# option,
-# onCompleted: (data) = > {
-#     const
-# videoDecode = data?.transceiver?.getVideoDecode?.videoDecode[0];
-# const
-# St2110InputAudio = data?.transceiver?.getSt2110InputAudio?.St2110InputAudio[0];
-# const[isValid, msg] = checkVideoAndAudioInput(videoDecode, St2110InputAudio);
-# if (!isValid)
-# {
-#     genLogs('FAILED', [msg]);
-# } else {
-#     genLogs('', [msg]);
-# handleNext();
-# }
-# }
-# });
-# const[getHdmiOutput] = useLazyQuery(GET_HDMI_OUTPUT, {
-#     ...
-# option,
-# onCompleted: async (data) = > {
-#     const
-# hdmiOutput = data?.transceiver?.getHdmiOutput?.hdmiOutput[0];
-# const[isValid, msg] = checkHdmiOutput(hdmiOutput);
-# if (!isValid)
-# {
-#     genLogs('FAILED', [msg]);
-# } else {
-#     genLogs('WAIT_AND_SEE', [msg]);
-# await delay(list[getIndex(step)].wait);
-# genLogs('OK');
-# handleNext();
-# }
-# }
-# });
-#
-# const[getUsbIp] = useLazyQuery(GET_USB_IP, {
-#     ...
-# option,
-# onCompleted: (data) = > {
-#     const
-# kvm = data?.transceiver?.getUsbIpServer?.usbIpServer[0];
-# const
-# isKvmLink =
-# kvm.usbipserverClientIpAddress == = temp.current.nmosdeviceIp & &
-#                                     kvm.usbipserverEnable == = 'ENABLED' & &
-#                                                                kvm.usbipserverConnectStatus == = 'STATUS_OK';
-# if (isKvmLink)
-# {
-#     handleNext();
-# } else {
-#     genLogs('FAILED', ['Kvm Link 失败']);
-# }
-# }
-# });
-# const[getDecodeIpmx] = useLazyQuery(GET_DECODE_IPMX, {
-#     ...
-# option,
-# onCompleted: (data) = > {
-#     const
-# ipmxs = data?.transceiver?.getIpmxInput?.ipmxInput;
-# const
-# targetVideo = ipmxs.find((item) = > item.inst == = '.1.1.1.1');
-# const
-# targetAudio = ipmxs.find((item) = > item.inst == = '.1.1.2.1');
-#
-# if (!targetVideo | | targetVideo.ipmxinputConnector != = temp.current) {
-# genLogs('FAILED', ['视频切换网口失败']);
-# return;
-# }
-# if (!targetAudio | | targetAudio.ipmxinputConnector != = temp.current) {
-# genLogs('FAILED', ['音频切换网口失败']);
-# return;
-# }
-#
-# handleNext();
-# }
-# });
-#
-# const[getFanSpeed] = useLazyQuery(GET_FAN_SPEED, {
-#     ...
-# option,
-# onCompleted: async (data) = > {
-#     const
-# fanSpeed = data?.system?.getFanSpeed?.fanSpeed[0];
-# if (step === '7')
-# {
-# if (fanSpeed.fanspeedStatus !== 10) {
-# genLogs('FAILED', ['转速切换至10%时失败']);
-# return;
-# }
-# genLogs('WAIT_AND_SEE', ['成功切换至10%']);
-# await delay(list[getIndex(step)].wait);
-# genLogs('ONGOING');
-# handleNext();
-# }
-#
-# if (step === '7.1') {
-# if (fanSpeed.fanspeedStatus != = 100) {
-# genLogs('FAILED', ['转速切换至100%时失败']);
-# return;
-# }
-# genLogs('WAIT_AND_SEE', ['成功切换至100%']);
-# await delay(list[getIndex(step)].wait);
-# genLogs('ONGOING');
-# handleNext();
-# }
-#
-# if (step === '7.2') {
-# if (fanSpeed.fanspeedControlMode != = 'FAN_SPEED_CONTROL_MODE_AUTO') {
-# genLogs('FAILED', ['转速切换至自动模式时失败']);
-# return;
-# }
-# genLogs('WAIT_AND_SEE', ['成功切换到自动模式']);
-# await delay(list[getIndex(step)].wait);
-# genLogs('OK');
-# handleNext();
-# }
-# }
-# });
-#
-#
-#
-# const
-# handleChangeFan = async (mode = 'FAN_SPEED_CONTROL_MODE_AUTO', value) = > {
-#     updateFanSpeed({
-#         variables: {
-#             sid,
-#             inst: '.0',
-#     test: new Date().getTime(),
-# input: {
-# fanspeedControlMode: mode,
-# ...(value ? {fanspeedPercentage: value}: {})
-# }
-# }
-# });
-# await delay();
-# getFanSpeed({
-#     variables: {
-#         sid,
-#         test: new
-# Date().getTime()
-# }
-# });
-# };
+        fanspeed_status = data['data']['system']['getFanSpeed']['fanSpeed'][0]['fanspeedStatus']
+        fanspeed_control_mode = data['data']['system']['getFanSpeed']['fanSpeed'][0]['fanspeedControlMode']
+        fanspeed_status_compare = f'FAN_SPEED_CONTROL_MODE_{mode}'
+        if step == 1 or step == 2:
+            if fanspeed_control_mode != fanspeed_status_compare or fanspeed_status != speed:
+                return False
+        elif step == 3:
+            if fanspeed_control_mode != fanspeed_status_compare:
+                return False
 
 
 # 设置网页标题，以及使用宽屏模式
@@ -253,12 +165,14 @@ st.write('Notice:Make sure you are normal')
 # 第一行
 col1, col2, col3, col4 = st.columns(4)
 ipaddr = col1.text_input('ip address', '10.200.1.40')
-graphql_url = f"http://{ipaddr}/graphql"
+graphql_url = f"https://{ipaddr}/graphql"
 
 if col3.button('Start Test'):
-    sid = getSid()
-    getDeviceInfo(sid)
-    updateFanSpeed(sid)
+    session_id = getSid()
+    if session_id:
+        getDeviceInfo(session_id)
+        changeInterface(session_id, 'NETWORK_CONNECTOR_2')
+        updateFanSpeed(session_id)
 if col4.button('Test Again'):
     ipaddr = '10.200.1.3'
 

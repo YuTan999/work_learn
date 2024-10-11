@@ -17,13 +17,13 @@ def get_sid():
     return mutation
 
 
-def update_input_selection(sid, inst, input):
+def update_input_selection(sid, inputs):
     mutation = f'''
     mutation {{
          updateInputSelection(
             sid: {sid},
-            inst: {inst},
-            input: {input}
+            inst: ".0",
+            input: {inputs}
           ) {{
             errorType {{
               code
@@ -46,13 +46,31 @@ def update_input_selection(sid, inst, input):
     return mutation
 
 
-def update_fan_speed(sid, input):
+def update_ipmx_input(sid, inst, inputs):
+    mutation = f'''
+    mutation {{
+         updateIpmxInput(
+            sid: "{sid}",
+            inst: "{inst}",
+            input: {inputs}
+          ) {{
+            errorType {{
+              code
+              message
+            }}
+          }}
+        }}
+    '''
+    return mutation
+
+
+def update_fan_speed(sid, inputs):
     mutation = f'''
     mutation {{
          updateFanSpeed(
             sid: "{sid}",
             inst: ".0",
-            input: {input}
+            input: {inputs}
             ) {{
               errorType {{
                 code
@@ -62,68 +80,3 @@ def update_fan_speed(sid, input):
         }}
     '''
     return mutation
-
-
-# mutation{
-#   updateFanSpeed(
-#     sid:"beQenn77gZEzhMUJeSenWyhufq54yNsX",
-#     inst:".0",
-#     input:{fanspeedControlMode:FAN_SPEED_CONTROL_MODE_AUTO}){
-#     errorType{
-#       code
-#       message
-#     }
-#   }
-# }
-
-
-
-# const[updateIpmxInput] = useMutation(UPDATE_IPMX_INPUT);
-# export
-# const
-# UPDATE_IPMX_INPUT = gql
-# `
-# mutation
-# updateIpmxInput($sid: String!, $inst: String!, $input: IpmxInputInput!) {
-#     updateIpmxInput(inst: $inst, sid: $sid, input: $input) {
-#     errorType
-# {
-#     code
-# message
-# }
-# }
-# }
-# `;
-#
-# const[updateVideoDecode] = useMutation(UPDATE_RX_VIDEO_DECODE);
-# export
-# const
-# UPDATE_RX_VIDEO_DECODE = gql
-# `
-# mutation
-# updateVideoDecode($inst: String!, $sid: String!, $input: VideoDecodeInput!) {
-#     updateVideoDecode(inst: $inst, sid: $sid, input: $input) {
-#     videoDecode
-# {
-#     videodecodeFormatMode
-# videodecodeManualResolution
-# videodecodeManualFrameRate
-# videodecodeCodec
-# videodecodeWidth
-# videodecodeHeight
-# videodecodeScanType
-# videodecodeFrameRate
-# videodecodeChromaFormat
-# videodecodeColorDepth
-# videodecodeStatus
-# inst
-# }
-# errorType
-# {
-#     code
-# message
-# }
-# }
-# }
-# `;
-#
