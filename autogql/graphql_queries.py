@@ -106,6 +106,8 @@ def get_hdmi_output(sid):
                hdmioutputAudioChannelSamples
                hdmioutputConnectionStatus
                hdmioutputVideoFormat
+               hdmioutputVideoChromaFormat
+               hdmioutputVideoColorDepth
               }}
             }}
           }}
