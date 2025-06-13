@@ -22,6 +22,13 @@ class BasePage:
     def send_keys(self, locator, text):
         self.find_element(locator).send_keys(text)
 
+    def is_element_present(self, locator):
+        try:
+            self.driver.find_element(*locator)
+            return True
+        except Exception:
+            return False
+
 
 # PO页面对象层
 class ScalingPage(BasePage):
@@ -34,9 +41,10 @@ class ScalingPage(BasePage):
     FRAMERATE_DROPDOWN = "//div/div/div/div/div[3]/div[2]/div/div"
 
     def login(self, username):
-        self.send_keys(self.USERNAME_INPUT, username)
-        self.send_keys(self.USERNAME_INPUT, Keys.ENTER)
-        time.sleep(1)
+        if self.is_element_present(self.USERNAME_INPUT):
+            self.send_keys(self.USERNAME_INPUT, username)
+            self.send_keys(self.USERNAME_INPUT, Keys.ENTER)
+            time.sleep(1)
 
     def select_option(self, xpath, value):
         self.click(self.DROPDOWN_BUTTON)
@@ -55,9 +63,9 @@ class ScalingPage(BasePage):
         time.sleep(0.3)
 
     def update_framerate(self, value):
-        for i in range(1, value):
+        for i in range(1, value + 1):
             self.select_option(self.FRAMERATE_DROPDOWN, i)
-            time.sleep(2 if i == value else 2.5)
+            time.sleep(15 if i == value else 17)
 
 
 # TestCase测试用例层
@@ -103,7 +111,7 @@ class TestManualScaling:
     @pytest.fixture(scope="function")
     def scaling_page(self, driver):
         page = ScalingPage(driver)
-        driver.get("http://10.200.8.40/")
+        driver.get("http://10.200.0.74/")
         page.login("admin")
         return page
 

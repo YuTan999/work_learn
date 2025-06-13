@@ -4,6 +4,7 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
@@ -11,7 +12,10 @@ from selenium.webdriver.common.keys import Keys
 
 class TestManualScaling:
     def setup_method(self):
-        self.driver = webdriver.Chrome()
+        chrome_driver_path = r'E:\jetbrain software\python\chromedriver-win64\chromedriver.exe'
+        service = Service(chrome_driver_path)
+        # 初始化WebDriver
+        self.driver = webdriver.Chrome(service=service)
         self.driver.maximize_window()
         self.wait = WebDriverWait(self.driver, 5)
         self.open_page()
@@ -21,7 +25,7 @@ class TestManualScaling:
         self.driver.quit()
 
     def open_page(self):
-        self.driver.get("http://10.200.8.40/")
+        self.driver.get("http://10.200.0.74/")
         self.driver.find_element(By.NAME, "username").send_keys("admin")
         self.driver.find_element(By.NAME, "username").send_keys(Keys.ENTER)
         time.sleep(1)
@@ -46,7 +50,6 @@ class TestManualScaling:
         confirm = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".css-1ec37i0")))
         confirm.click()
 
-
     def update_resolution(self, value):
         # 分辨率
         self.select_option("//div[3]/div/div/div/div/div[3]/div/div/div", value)
@@ -59,10 +62,9 @@ class TestManualScaling:
 
     def update_framerate(self, value):
         # 帧率
-        for i in range(1, value):
+        for i in range(1, value + 1):
             self.select_option("//div/div/div/div/div[3]/div[2]/div/div", i)
-            time.sleep(2 if i == value else 2.5)
-
+            time.sleep(15 if i == value else 17)
 
 
 def main():

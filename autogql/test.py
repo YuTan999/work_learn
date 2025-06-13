@@ -1,15 +1,24 @@
 from graphql_queries import get_hdmi_output, get_video_and_audio_input_format, get_device_info, get_decode_ipmx
 from graphql_mutations import update_fan_speed, get_sid
-from graphql_requests import send_graphql_query
+from graphql_requests import send_graphql_query, send_graphql_mutation
 
-graphql_url = "http://10.200.8.40/graphql"
+graphql_url = "http://10.200.8.52/graphql"
+def fanSpeedInput(mode, speed):
+    fanspeedinput = f'{{fanspeedControlMode:FAN_SPEED_CONTROL_MODE_{mode},fanspeedPercentage:{speed}}}'
+    return fanspeedinput
 
-# getSid = get_sid()
-query = get_hdmi_output('74HFtgqk6SBUlfmJBJeqbiDiUIkmfpSm')
-print(query)
-result = send_graphql_query(query, graphql_url)
-if result:
-    print(result)
+gets = get_sid()
+data = send_graphql_mutation(get_sid(), graphql_url)
+Sid = data['data']['login']['sid']
+# query = update_fan_speed(Sid)
+# print(query)
+# result = send_graphql_query(query, graphql_url)
+print(update_fan_speed(Sid, fanSpeedInput('MANUAL', '100')))
+send_graphql_mutation(update_fan_speed(Sid, fanSpeedInput('MANUAL', '100')), graphql_url)
+
+
+# if result:
+#     print(result)
     # print(result['data']['transceiver']['St2110InputAudio'][0]['st2110inputaudioMode'])
     # print(result['data']['transceiver']['St2110InputAudio'][0]['st2110inputaudioSampleRate'])
     # print(result['data']['transceiver']['getIpmxInput']['ipmxInput'][0]['ipmxinputConnector'])

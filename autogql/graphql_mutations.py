@@ -2,7 +2,7 @@ def get_sid():
     mutation = '''
     mutation {
          login(
-              passwd: "proav101",
+              passwd: "",
               user: "admin"
             ) {
               errorType {
