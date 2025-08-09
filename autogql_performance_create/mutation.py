@@ -136,3 +136,28 @@ def create_ipmx_destination(routename, videoIpAddress, audioIpAddress, networkIn
     }}
     '''
     return mutation
+
+
+def create_rtsp_source(routename, address, port, path):
+    mutation = f'''
+    mutation {{
+      createRtspSource(input: {{
+        address: "{address}",
+        port: {port},
+        userName: "",
+        passphrase: "",
+        path: "{path}",
+        active: true,
+        label: "{routename}"
+      }}) {{
+        rtspSource {{
+          id
+        }}
+        errorType {{
+          code
+          message
+        }}
+      }}
+    }}
+    '''
+    return mutation
