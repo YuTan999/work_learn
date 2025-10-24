@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 requests.packages.urllib3.disable_warnings()
 
 # 配置参数
-LOGIN_URL = "http://10.200.1.191/api/v1/auth/login"
-RESOURCE_URL = "http://10.200.1.191/api/v1/resource/resources"
+LOGIN_URL = "http://192.168.11.68/api/v1/auth/login"
+RESOURCE_URL = "http://192.168.11.68/api/v1/resource/resources"
 USERNAME = "admin"
 PASSWORD = "proav101"
-THREAD_COUNT = 367  # 并发线程数，对应12个用户
+THREAD_COUNT = 1455  # 并发线程数，对应12个用户
 REQUESTS_PER_THREAD = 10  # 每个线程发送的请求数
 CSV_FILENAME = f"request_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"  # CSV日志文件名
 
@@ -83,8 +83,8 @@ def login():
 
         login_data = response.json()
         if login_data.get("success"):
-            cookie_key = login_data["cookie"]["key"]
-            cookie_value = login_data["cookie"]["value"]
+            cookie_key = login_data["data"]["cookie"]["key"]
+            cookie_value = login_data["data"]["cookie"]["value"]
             cookie = {cookie_key: cookie_value}
             logger.info(f"登录成功，获取到cookie: {cookie}")
             return cookie
@@ -165,7 +165,7 @@ def thread_task():
     # 发送指定次数的请求
     for _ in range(REQUESTS_PER_THREAD):
         # 随机延迟模拟用户操作间隔
-        time.sleep(random.uniform(0.1, 0.2))
+        time.sleep(random.uniform(0.001, 0.002))
         test_resource_endpoint(cookie)
 
 
