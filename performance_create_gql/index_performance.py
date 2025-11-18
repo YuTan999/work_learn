@@ -9,9 +9,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # 创建多通道一进一出脚本，srt输入、rtmp输出、ipmx输出
 # 以下参数都要改:graphql_url,localports(SRT),networkInterfaceId,start,end
 # 还有request的cookie也要改
-start = 45
-end = 46
-remotehost = "192.168.11.191"
+start = 11
+end = 35
+remotehost = "192.168.11.13"
 rtsp_url = "192.168.11.211"
 rtsp_port = "554"
 # rtsp_paths = "live/av0"
@@ -19,16 +19,16 @@ rtsp_paths = [f'live_{i}_1' for i in range(start, end)]
 mpegip_add = [f'239.182.0.1{i}' for i in range(start, end)]
 mpegip_port = [f'100{i}' for i in range(start, end)]
 localPorts = [f'400{i}' for i in range(start, end)]
-routeNames = [f'rtmp{i}' for i in range(start, end)]
+routeNames = [f'aaa{i}' for i in range(start, end)]
 rtmp_urls = [f'rtmp://10.200.1.154:1935/o{i}' for i in range(start, end)]
-videoAdds1 = [f'232.177.0.1{i}' for i in range(start, end)]
-audioAdds1 = [f'232.177.1.1{i}' for i in range(start, end)]
-videoAdds = [f'232.174.0.1{i}' for i in range(start, end)]
-audioAdds = [f'232.174.1.1{i}' for i in range(start, end)]
+videoAdds1 = [f'233.130.0.1{i}' for i in range(start, end)]
+audioAdds1 = [f'233.173.1.1{i}' for i in range(start, end)]
+videoAdds = [f'232.170.0.1{i}' for i in range(start, end)]
+audioAdds = [f'232.170.1.1{i}' for i in range(start, end)]
 inputvideoadd = "239.4.11.55"
 inputaudioadd = "239.5.11.55"
 
-graphql_url = "https://192.168.11.191/graphql"
+graphql_url = "https://192.168.11.13/graphql"
 # graphql_url = "https://192.168.11.185/graphql"
 # graphql_url = "https://192.168.11.190/graphql"
 interface_name = "eth0"
@@ -52,26 +52,26 @@ def main():
     # time.sleep(1)
     ## 2. 创建Source
     # source_dict = route_manager.createSrtSource(routeNames, localPorts)
-    # source_dict = route_manager.createIpmxSource(routeNames, inputvideoadd, inputaudioadd)
+    source_dict = route_manager.createIpmxSource(routeNames, videoAdds, audioAdds)
     # source_dict = route_manager.createSrtIpmxSource(routeNames, localPorts)
     # source_dict = route_manager.createRtspSource(routeNames, rtsp_paths, rtsp_url, rtsp_port)
-    source_dict = route_manager.createMpegIpSource(routeNames, mpegip_add, mpegip_port)
+    # source_dict = route_manager.createMpegIpSource(routeNames, mpegip_add, mpegip_port)
     ## 3. 更新Source
     time.sleep(1)
     route_manager.updateRouteSource(route_dict, source_dict)
     ## 4. 创建Destination
-    # destination_dict = route_manager.createIpmxDestination(routeNames, videoAdds, audioAdds)
+    destination_dict = route_manager.createIpmxDestination(routeNames, videoAdds1, audioAdds1)
     # destination_dict = route_manager.createSrtDestination(routeNames, localPorts, remotehost)
     # destination_dict = route_manager.createSrtIpmxDestination(routeNames, localPorts, remotehost)
     # destination_dict = route_manager.createRtmpDestination(routeNames, rtmp_urls)
     ## 5. 更新Destination
     time.sleep(1)
-    # route_manager.updateRouteDestination(route_dict, destination_dict)
+    route_manager.updateRouteDestination(route_dict, destination_dict)
 
     # print(route_dict)
     # updateRouteSource({"aa":"Um91dGU6MTY1N2U4NTAtY2JjYi00YThiLWE3ZTctYmNmNjM0ZTlmMjEy"},{"aa": "UnRzcFNvdXJjZTpmYmI0NGUxNS0xNWU5LTRmY2QtOGMwMS1lYTAzNDRhZWE0MWU="})
-    route_manager.updateRouteDestination({"aa": "Um91dGU6Y2M5YzJlNmQtZWJiYy00YTYwLTgwYmUtNDM4ZmExMjc5MWMw"}, {
-        "aa": "SXBteERlc3RpbmF0aW9uOjVmZWI3ZjkyLWY2MDgtNGM4YS05ZTg1LWYxM2MxZjkwYWQ4MQ=="})
+    # route_manager.updateRouteDestination({"aa": "Um91dGU6Y2M5YzJlNmQtZWJiYy00YTYwLTgwYmUtNDM4ZmExMjc5MWMw"}, {
+    #     "aa": "SXBteERlc3RpbmF0aW9uOjVmZWI3ZjkyLWY2MDgtNGM4YS05ZTg1LWYxM2MxZjkwYWQ4MQ=="})
 
 
 if __name__ == "__main__":
